@@ -6,6 +6,7 @@ import certifi
 import yfinance as yf
 from curl_cffi import requests as curl_requests
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 # 프로젝트 경로에 한글(문서)이 있으면 curl이 인증서 파일을 읽지 못하므로
 # 인증서를 영문 경로(임시 폴더)로 복사해서 사용
@@ -15,6 +16,13 @@ session = curl_requests.Session(impersonate="chrome", verify=CA_FILE)
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def read_home():
