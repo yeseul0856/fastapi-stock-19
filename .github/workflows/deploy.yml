@@ -1,0 +1,35 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2.pem
+          chmod 600 ~/.ssh/ec2.pem
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload code
+        run: |
+          rsync -az --delete \
+            --exclude '.git' --exclude '.venv' --exclude '__pycache__' \
+            -e "ssh -i ~/.ssh/ec2.pem" \
+            ./ ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/fastapi-stock-19/
+
+      - name: Install & restart
+        run: |
+          ssh -i ~/.ssh/ec2.pem ubuntu@${{ secrets.EC2_HOST }} \
+            "bash /home/ubuntu/fastapi-stock-19/deploy/deploy.sh"
